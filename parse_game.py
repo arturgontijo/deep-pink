@@ -1,11 +1,10 @@
 import chess, chess.pgn
 import numpy
-import sys
 import os
 import multiprocessing
-import itertools
 import random
 import h5py
+
 
 def read_games(fn):
     f = open(fn)
@@ -20,23 +19,23 @@ def read_games(fn):
 
         if not g:
             break
-        
+
         yield g
 
 
 def bb2array(b, flip=False):
     x = numpy.zeros(64, dtype=numpy.int8)
-    
+
     for pos, piece in enumerate(b.pieces):
         if piece != 0:
             color = int(bool(b.occupied_co[chess.BLACK] & chess.BB_SQUARES[pos]))
             col = int(pos % 8)
             row = int(pos / 8)
             if flip:
-                row = 7-row
+                row = 7 - row
                 color = 1 - color
 
-            piece = color*7 + piece
+            piece = color * 7 + piece
 
             x[row * 8 + col] = piece
 
@@ -49,7 +48,7 @@ def parse_game(g):
     if r not in rm:
         return None
     y = rm[r]
-    # print >> sys.stderr, 'result:', y
+    # print(>> sys.stderr, 'result:', y
 
     # Generate all boards
     gn = g.end()
@@ -63,13 +62,13 @@ def parse_game(g):
         gn = gn.parent
         moves_left += 1
 
-    print len(gns)
+    print(len(gns))
     if len(gns) < 10:
-        print g.end()
+        print(g.end())
 
     gns.pop()
 
-    moves_left, gn, flip = random.choice(gns) # remove first position
+    moves_left, gn, flip = random.choice(gns)  # remove first position
 
     b = gn.board()
     x = bb2array(b, flip=flip)
@@ -78,27 +77,23 @@ def parse_game(g):
     if flip:
         y = -y
 
-    # generate a random baord
+    # generate a random board
     moves = list(b_parent.legal_moves)
     move = random.choice(moves)
     b_parent.push(move)
     x_random = bb2array(b_parent, flip=flip)
 
     if moves_left < 3:
-        print moves_left, 'moves left'
-        print 'winner:', y
-        print g.headers
-        print b
-        print 'checkmate:', g.end().board().is_checkmate()
-    
-    # print x
-    # print x_parent
-    # print x_random
+        print(moves_left, 'moves left')
+        print('winner:', y)
+        print(g.headers)
+        print(b)
+        print('checkmate:', g.end().board().is_checkmate())
 
-    return (x, x_parent, x_random, moves_left, y)
+    return x, x_parent, x_random, moves_left, y
 
 
-def read_all_games(fn_in, fn_out):    
+def read_all_games(fn_in, fn_out):
     g = h5py.File(fn_out, 'w')
     X, Xr, Xp = [g.create_dataset(d, (0, 64), dtype='b', maxshape=(None, 64), chunks=True) for d in ['x', 'xr', 'xp']]
     Y, M = [g.create_dataset(d, (0,), dtype='b', maxshape=(None,), chunks=True) for d in ['y', 'm']]
@@ -113,7 +108,7 @@ def read_all_games(fn_in, fn_out):
         if line + 1 >= size:
             g.flush()
             size = 2 * size + 1
-            print 'resizing to', size
+            print('resizing to', size)
             [d.resize(size=size, axis=0) for d in (X, Xr, Xp, Y, M)]
 
         X[line] = x
@@ -127,8 +122,10 @@ def read_all_games(fn_in, fn_out):
     [d.resize(size=line, axis=0) for d in (X, Xr, Xp, Y, M)]
     g.close()
 
+
 def read_all_games_2(a):
     return read_all_games(*a)
+
 
 def parse_dir():
     files = []
